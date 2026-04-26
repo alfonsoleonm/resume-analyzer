@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { upload } from '../middleware/upload.middleware';
 import { extractTextFromPDF } from '../services/pdf.service';
-import { analyzeResume } from '../services/analysis.service';
+import { analyzeResume, fetchAnalysis } from '../services/analysis.service';
 
 const router = Router();
 
@@ -26,8 +26,18 @@ router.post('/analyze', upload.single('resume'), async (req: Request, res: Respo
     }
 });
 
-router.get('/analysis/:id', (req: Request, res: Response) => {
-    res.status(200).json({ message: `Fetching analysis ${req.params.id} -- coming soon` });
+router.get('/analysis/:id', async (req: Request<{ id: string }>, res: Response) => {
+    try {
+        const result = await fetchAnalysis(req.params.id);
+        if (!result) {
+            res.status(404).json({ error: 'Analysis not found' });
+            return;
+        }
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Fetch error:', err);
+        res.status(500).json({ error: 'Failed to fetch analysis' });
+    }
 });
 
 export default router;

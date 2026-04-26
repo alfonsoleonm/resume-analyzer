@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { analyzeWithGemini } from '../adapters/gemini.adapter';
+import { saveAnalysis, getAnalysis } from '../adapters/dynamo.adapter';
 import { AnalysisResult } from '../models/analysis.model';
 
 export async function analyzeResume(
@@ -15,5 +16,11 @@ export async function analyzeResume(
         ...aiResult,
     };
 
+    await saveAnalysis(result);
+
     return result;
+}
+
+export async function fetchAnalysis(analysisId: string): Promise<AnalysisResult | null> {
+    return getAnalysis(analysisId);
 }
