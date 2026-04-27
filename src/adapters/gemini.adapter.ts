@@ -3,12 +3,29 @@ import { AnalysisResult } from '../models/analysis.model';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+async function generateWithRetry(prompt: string, retries = 3, delayMs = 3000): Promise<string> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (err: any) {
+      if (attempt < retries && (err?.status === 503 || err?.status === 429)) {
+        console.warn(`Gemini attempt ${attempt} failed with ${err.status}, retrying in ${delayMs}ms...`);
+        await new Promise((res) => setTimeout(res, delayMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error('Gemini failed after max retries');
+}
+
 export async function analyzeWithGemini(
-    resumeText: string,
-    jobDescription: string
+  resumeText: string,
+  jobDescription: string
 ): Promise<Omit<AnalysisResult, 'analysisId' | 'createdAt' | 'resumeSnippet'>> {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `
+  const prompt = `
 You are a professional resume analyzer. Analyze the resume against the job description and return a JSON object only, with no markdown, no backticks, no explanation.
 
 The JSON must follow this exact structure:
@@ -31,9 +48,6 @@ JOB DESCRIPTION:
 ${jobDescription}
 `;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-
-    const parsed = JSON.parse(text);
-    return parsed;
+  const text = await generateWithRetry(prompt);
+  return JSON.parse(text);
 }
