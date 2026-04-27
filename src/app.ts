@@ -5,7 +5,10 @@ import analysisRoutes from './routes/analysis.routes';
 const app = express();
 
 app.use(cors({
-    origin: 'http://localhost:4200',
+    origin: [
+        'http://localhost:4200',
+        /\.netlify\.app$/,
+    ],
     methods: ['GET', 'POST'],
 }));
 
