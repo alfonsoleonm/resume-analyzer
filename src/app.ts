@@ -7,7 +7,7 @@ const app = express();
 app.use(cors({
     origin: [
         'http://localhost:4200',
-        /\.netlify\.app$/,
+        'https://resume-analyzer-frontend.netlify.app',
     ],
     methods: ['GET', 'POST'],
 }));
